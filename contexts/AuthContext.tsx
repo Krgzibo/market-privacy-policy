@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
+        const previousUserType = user?.user_type;
         setSession(session);
         if (session?.user) {
           await loadUserProfile(session.user.id);
@@ -40,7 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setLoading(false);
           if (event === 'SIGNED_OUT') {
-            router.replace('/');
+            if (previousUserType === 'customer') {
+              router.replace('/(customer)');
+            } else if (previousUserType === 'business') {
+              router.replace('/(business)');
+            } else {
+              router.replace('/');
+            }
           }
         }
       })();
