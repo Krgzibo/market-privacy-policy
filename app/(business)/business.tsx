@@ -181,6 +181,7 @@ export default function BusinessManagement() {
     };
 
     setSaving(true);
+    console.log('Starting save, user.id:', user.id);
 
     try {
       const businessData = {
@@ -196,21 +197,29 @@ export default function BusinessManagement() {
         owner_id: user.id,
       };
 
+      console.log('Business data to save:', businessData);
+
       if (business) {
+        console.log('Updating existing business:', business.id);
         const { error } = await supabase
           .from('businesses')
           .update(businessData)
           .eq('id', business.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         Alert.alert('Başarılı', 'İşletme bilgileri güncellendi');
       } else {
+        console.log('Inserting new business');
         const { data, error } = await supabase
           .from('businesses')
           .insert(businessData)
           .select()
           .single();
 
+        console.log('Insert result - data:', data, 'error:', error);
         if (error) throw error;
         setBusiness(data);
         Alert.alert('Başarılı', 'İşletmeniz oluşturuldu');
@@ -219,9 +228,10 @@ export default function BusinessManagement() {
       loadBusiness();
     } catch (error) {
       console.error('Error saving business:', error);
-      Alert.alert('Hata', 'İşletme kaydedilirken bir hata oluştu');
+      Alert.alert('Hata', `İşletme kaydedilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
     } finally {
       setSaving(false);
+      console.log('Save completed');
     }
   };
 
