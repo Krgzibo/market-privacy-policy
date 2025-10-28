@@ -169,92 +169,68 @@ export default function BusinessOrders() {
         ? new Date(order.pickup_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         : '-';
 
-      const itemsHtml = order.order_items.map(item => `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.quantity}x</td>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.product_name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${(item.price * item.quantity).toFixed(2)} ₺</td>
-        </tr>
-      `).join('');
-
       const businessName = business?.name || 'İşletme';
       const statusLabel = statusConfig[order.status].label;
-      const notesSection = order.notes ? `
-        <div class="notes">
-          <strong>Müşteri Notu:</strong><br>
-          ${order.notes}
-        </div>
-      ` : '';
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Sipariş ${order.order_code || order.id}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-            h1 { text-align: center; color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
-            h2 { color: #3498db; margin-top: 20px; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th { background-color: #3498db; color: white; padding: 12px; text-align: left; }
-            td { padding: 8px; }
-            .total { font-size: 24px; font-weight: bold; text-align: right; margin-top: 20px; color: #27ae60; }
-            .info { margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 8px; }
-            .notes { background-color: #fff9e6; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f39c12; }
-            @media print {
-              body { padding: 10px; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>${businessName}</h1>
-          <div class="info">
-            <strong>Sipariş No:</strong> ${order.order_code || order.id}<br>
-            <strong>Müşteri:</strong> ${order.customer_name}<br>
-            <strong>Tarih:</strong> ${orderDate}<br>
-            <strong>Teslim Saati:</strong> ${pickupTime}<br>
-            <strong>Durum:</strong> ${statusLabel}
-          </div>
+      let printContent = `${businessName}\n`;
+      printContent += `${'='.repeat(40)}\n\n`;
+      printContent += `Sipariş No: ${order.order_code || order.id}\n`;
+      printContent += `Müşteri: ${order.customer_name}\n`;
+      printContent += `Tarih: ${orderDate}\n`;
+      printContent += `Teslim Saati: ${pickupTime}\n`;
+      printContent += `Durum: ${statusLabel}\n\n`;
+      printContent += `${'='.repeat(40)}\n`;
+      printContent += `SİPARİŞ DETAYLARI\n`;
+      printContent += `${'='.repeat(40)}\n\n`;
 
-          <h2>Sipariş Detayları</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Adet</th>
-                <th>Ürün</th>
-                <th style="text-align: right;">Fiyat</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
+      order.order_items.forEach(item => {
+        printContent += `${item.quantity}x ${item.product_name}\n`;
+        printContent += `   ${(item.price * item.quantity).toFixed(2)} ₺\n`;
+      });
 
-          ${notesSection}
+      if (order.notes) {
+        printContent += `\n${'='.repeat(40)}\n`;
+        printContent += `Müşteri Notu:\n${order.notes}\n`;
+      }
 
-          <div class="total">
-            TOPLAM: ${order.total_amount.toFixed(2)} ₺
-          </div>
+      printContent += `\n${'='.repeat(40)}\n`;
+      printContent += `TOPLAM: ${order.total_amount.toFixed(2)} ₺\n`;
+      printContent += `${'='.repeat(40)}\n`;
 
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 500);
-            };
-          </script>
-        </body>
-        </html>
-      `;
+      const printFrame = document.createElement('iframe');
+      printFrame.style.display = 'none';
+      document.body.appendChild(printFrame);
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        printWindow.focus();
-      } else {
-        Alert.alert('Hata', 'Popup engellendi. Lütfen tarayıcınızın popup ayarlarını kontrol edin.');
+      const doc = printFrame.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(`
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <style>
+                body {
+                  font-family: 'Courier New', monospace;
+                  padding: 20px;
+                  white-space: pre-wrap;
+                  font-size: 14px;
+                }
+                @media print {
+                  body { padding: 10px; }
+                }
+              </style>
+            </head>
+            <body>${printContent}</body>
+          </html>
+        `);
+        doc.close();
+
+        setTimeout(() => {
+          printFrame.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+          }, 100);
+        }, 250);
       }
     } else {
       Alert.alert('Bilgi', 'Yazdırma özelliği sadece web sürümünde kullanılabilir');
