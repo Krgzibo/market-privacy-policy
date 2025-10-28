@@ -43,12 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setLoading(false);
           if (event === 'SIGNED_OUT') {
-            const savedUserType = await AsyncStorage.getItem(USER_TYPE_KEY);
-            if (savedUserType === 'customer') {
-              router.replace('/(customer)');
-            } else if (savedUserType === 'business') {
-              router.replace('/(business)');
-            }
+            router.replace('/');
           }
         }
       })();
