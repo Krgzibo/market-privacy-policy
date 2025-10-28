@@ -52,6 +52,12 @@ export default function BusinessLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="privacy"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

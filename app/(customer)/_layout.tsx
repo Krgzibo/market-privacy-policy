@@ -51,6 +51,12 @@ export default function CustomerLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="privacy"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
