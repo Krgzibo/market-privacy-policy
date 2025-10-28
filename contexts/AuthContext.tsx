@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { User, UserType } from '@/types/database';
+
+const USER_TYPE_KEY = 'user_type';
 
 interface AuthContextType {
   session: Session | null;
@@ -19,7 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const previousUserTypeRef = useRef<UserType | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,8 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
-        console.log('Auth event:', event);
-        console.log('Previous user type:', previousUserTypeRef.current);
         setSession(session);
         if (session?.user) {
           await loadUserProfile(session.user.id);
@@ -43,16 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setLoading(false);
           if (event === 'SIGNED_OUT') {
-            console.log('SIGNED_OUT detected, redirecting based on:', previousUserTypeRef.current);
-            if (previousUserTypeRef.current === 'customer') {
-              console.log('Redirecting to customer');
+            const savedUserType = await AsyncStorage.getItem(USER_TYPE_KEY);
+            if (savedUserType === 'customer') {
               router.replace('/(customer)');
-            } else if (previousUserTypeRef.current === 'business') {
-              console.log('Redirecting to business');
+            } else if (savedUserType === 'business') {
               router.replace('/(business)');
-            } else {
-              console.log('No user type, redirecting to home');
-              router.replace('/');
             }
           }
         }
@@ -73,8 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       setUser(data);
       if (data?.user_type) {
-        console.log('Setting previous user type to:', data.user_type);
-        previousUserTypeRef.current = data.user_type;
+        await AsyncStorage.setItem(USER_TYPE_KEY, data.user_type);
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
