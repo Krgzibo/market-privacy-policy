@@ -250,9 +250,11 @@ export default function BusinessOrders() {
 
       const printWindow = window.open('', '_blank');
       if (printWindow) {
-        printWindow.document.open();
         printWindow.document.write(htmlContent);
         printWindow.document.close();
+        printWindow.focus();
+      } else {
+        Alert.alert('Hata', 'Popup engellendi. Lütfen tarayıcınızın popup ayarlarını kontrol edin.');
       }
     } else {
       Alert.alert('Bilgi', 'Yazdırma özelliği sadece web sürümünde kullanılabilir');
