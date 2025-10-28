@@ -4,9 +4,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MapPin, Navigation, Clock, Search, X, Map as MapIcon, List } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import MapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import { Business } from '@/types/database';
+
+let MapView: any = null;
+let Marker: any = null;
+let Circle: any = null;
+let PROVIDER_DEFAULT: any = null;
+
+if (Platform.OS !== 'web') {
+  const maps = require('react-native-maps');
+  MapView = maps.default;
+  Marker = maps.Marker;
+  Circle = maps.Circle;
+  PROVIDER_DEFAULT = maps.PROVIDER_DEFAULT;
+}
 
 interface BusinessWithDistance extends Business {
   distance: number;
@@ -29,7 +41,8 @@ export default function CustomerHome() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
+  const isMapAvailable = Platform.OS !== 'web';
 
   useEffect(() => {
     getUserLocation();
@@ -299,16 +312,18 @@ export default function CustomerHome() {
             >
               <Search size={18} color="#27ae60" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.viewToggleButton, viewMode === 'map' && styles.viewToggleActive]}
-              onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-            >
-              {viewMode === 'list' ? (
-                <MapIcon size={18} color={"#27ae60"} />
-              ) : (
-                <List size={18} color={"#fff"} />
-              )}
-            </TouchableOpacity>
+            {isMapAvailable && (
+              <TouchableOpacity
+                style={[styles.viewToggleButton, viewMode === 'map' && styles.viewToggleActive]}
+                onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+              >
+                {viewMode === 'list' ? (
+                  <MapIcon size={18} color={"#27ae60"} />
+                ) : (
+                  <List size={18} color={"#fff"} />
+                )}
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.refreshLocationButton}
               onPress={getUserLocation}
@@ -326,9 +341,9 @@ export default function CustomerHome() {
           <Text style={styles.emptyText}>Yakınınızda işletme bulunamadı</Text>
           <Text style={styles.emptySubtext}>Daha sonra tekrar deneyin</Text>
         </View>
-      ) : viewMode === 'map' ? (
+      ) : viewMode === 'map' && isMapAvailable ? (
         <View style={styles.mapContainer}>
-          {userLocation && (
+          {userLocation && MapView && (
             <MapView
               ref={mapRef}
               provider={PROVIDER_DEFAULT}
@@ -342,18 +357,20 @@ export default function CustomerHome() {
               showsUserLocation
               showsMyLocationButton
             >
-              <Circle
-                center={{
-                  latitude: userLocation.latitude,
-                  longitude: userLocation.longitude,
-                }}
-                radius={MAX_DISTANCE_KM * 1000}
-                fillColor="rgba(39, 174, 96, 0.1)"
-                strokeColor="rgba(39, 174, 96, 0.3)"
-                strokeWidth={2}
-              />
+              {Circle && (
+                <Circle
+                  center={{
+                    latitude: userLocation.latitude,
+                    longitude: userLocation.longitude,
+                  }}
+                  radius={MAX_DISTANCE_KM * 1000}
+                  fillColor="rgba(39, 174, 96, 0.1)"
+                  strokeColor="rgba(39, 174, 96, 0.3)"
+                  strokeWidth={2}
+                />
+              )}
 
-              {businesses.map((business) => {
+              {Marker && businesses.map((business) => {
                 const isOpen = isBusinessOpen(business);
                 return (
                   <Marker
