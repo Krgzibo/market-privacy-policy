@@ -67,14 +67,8 @@ export default function BusinessProfile() {
 
 
   const handleSignOut = async () => {
-    const confirmed = Platform.OS === 'web'
-      ? confirm('Çıkış yapmak istediğinizden emin misiniz?')
-      : true;
-
-    if (confirmed) {
-      await signOut();
-      globalRouter.replace('/');
-    }
+    await signOut();
+    globalRouter.replace('/');
   };
 
   return (
