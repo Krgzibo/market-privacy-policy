@@ -104,18 +104,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      setLoading(true);
       await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      router.replace('/');
     } catch (error) {
       console.error('Error signing out:', error);
-      setSession(null);
-      setUser(null);
-      router.replace('/');
-    } finally {
-      setLoading(false);
     }
   };
 
