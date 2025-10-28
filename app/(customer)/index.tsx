@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Platform, RefreshControl, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Platform, RefreshControl, Modal, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MapPin, Navigation, Clock, Search, X, Map as MapIcon, List } from 'lucide-react-native';
+import { MapPin, Navigation, Clock, Search, X } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { Business } from '@/types/database';
@@ -214,6 +214,23 @@ export default function CustomerHome() {
     return R * c;
   };
 
+  const openNavigation = (latitude: number, longitude: number, name: string) => {
+    const url = Platform.select({
+      ios: `maps://app?daddr=${latitude},${longitude}`,
+      android: `google.navigation:q=${latitude},${longitude}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+    });
+
+    Linking.canOpenURL(url).then((supported) => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+        Linking.openURL(webUrl);
+      }
+    });
+  };
+
   const renderBusiness = ({ item }: { item: BusinessWithDistance }) => {
     const isOpen = isBusinessOpen(item);
 
@@ -230,13 +247,24 @@ export default function CustomerHome() {
         activeOpacity={isOpen ? 0.7 : 1}
       >
         <View style={styles.businessHeader}>
-          <Text style={[styles.businessName, !isOpen && styles.textClosed]}>{item.name}</Text>
-          <View style={styles.badges}>
-            <View style={styles.distanceBadge}>
-              <MapPin size={14} color="#27ae60" />
-              <Text style={styles.distanceText}>{item.distance.toFixed(1)} km</Text>
+          <View style={styles.businessHeaderLeft}>
+            <Text style={[styles.businessName, !isOpen && styles.textClosed]}>{item.name}</Text>
+            <View style={styles.badges}>
+              <View style={styles.distanceBadge}>
+                <MapPin size={14} color="#27ae60" />
+                <Text style={styles.distanceText}>{item.distance.toFixed(1)} km</Text>
+              </View>
             </View>
           </View>
+          <TouchableOpacity
+            style={styles.navigationButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              openNavigation(item.latitude, item.longitude, item.name);
+            }}
+          >
+            <Navigation size={20} color="#27ae60" />
+          </TouchableOpacity>
         </View>
 
         {item.description ? (
@@ -485,16 +513,26 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
-  businessName: {
+  businessHeaderLeft: {
     flex: 1,
+  },
+  businessName: {
     fontSize: 20,
     fontWeight: '700',
     color: '#2c3e50',
-    marginRight: 12,
+    marginBottom: 4,
   },
   badges: {
     flexDirection: 'row',
     gap: 8,
+  },
+  navigationButton: {
+    backgroundColor: '#e8f8f5',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#27ae60',
+    marginLeft: 8,
   },
   distanceBadge: {
     flexDirection: 'row',
