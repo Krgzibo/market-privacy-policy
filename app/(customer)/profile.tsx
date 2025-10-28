@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Mail, LogOut, ShieldCheck } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, router as globalRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 export default function CustomerProfile() {
   const { user, signOut } = useAuth();
@@ -12,7 +12,6 @@ export default function CustomerProfile() {
 
   const handleSignOut = async () => {
     await signOut();
-    globalRouter.replace('/');
   };
 
   return (

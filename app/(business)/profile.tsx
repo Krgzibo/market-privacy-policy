@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Mail, LogOut, Store, Clock, ShieldCheck } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, router as globalRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Business } from '@/types/database';
 
@@ -68,7 +68,6 @@ export default function BusinessProfile() {
 
   const handleSignOut = async () => {
     await signOut();
-    globalRouter.replace('/');
   };
 
   return (
