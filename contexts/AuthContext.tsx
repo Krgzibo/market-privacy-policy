@@ -34,17 +34,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
+        console.log('Auth event:', event);
+        console.log('Previous user type:', previousUserTypeRef.current);
         setSession(session);
         if (session?.user) {
           await loadUserProfile(session.user.id);
         } else {
           setUser(null);
           setLoading(false);
-          if (event === 'SIGNED_OUT' && previousUserTypeRef.current) {
+          if (event === 'SIGNED_OUT') {
+            console.log('SIGNED_OUT detected, redirecting based on:', previousUserTypeRef.current);
             if (previousUserTypeRef.current === 'customer') {
+              console.log('Redirecting to customer');
               router.replace('/(customer)');
             } else if (previousUserTypeRef.current === 'business') {
+              console.log('Redirecting to business');
               router.replace('/(business)');
+            } else {
+              console.log('No user type, redirecting to home');
+              router.replace('/');
             }
           }
         }
@@ -65,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       setUser(data);
       if (data?.user_type) {
+        console.log('Setting previous user type to:', data.user_type);
         previousUserTypeRef.current = data.user_type;
       }
     } catch (error) {
