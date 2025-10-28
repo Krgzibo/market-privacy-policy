@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [previousUserType, setPreviousUserType] = useState<UserType | null>(null);
+  const previousUserTypeRef = useRef<UserType | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,10 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUser(null);
           setLoading(false);
-          if (event === 'SIGNED_OUT' && previousUserType) {
-            if (previousUserType === 'customer') {
+          if (event === 'SIGNED_OUT' && previousUserTypeRef.current) {
+            if (previousUserTypeRef.current === 'customer') {
               router.replace('/(customer)');
-            } else if (previousUserType === 'business') {
+            } else if (previousUserTypeRef.current === 'business') {
               router.replace('/(business)');
             }
           }
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       setUser(data);
       if (data?.user_type) {
-        setPreviousUserType(data.user_type);
+        previousUserTypeRef.current = data.user_type;
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
