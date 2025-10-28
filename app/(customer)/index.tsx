@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Platform, RefreshControl, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MapPin, Navigation, Clock, Search, X } from 'lucide-react-native';
+import { MapPin, Navigation, Clock, Search, X, Map as MapIcon, List } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import MapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import { Business } from '@/types/database';
 
@@ -27,6 +28,8 @@ export default function CustomerHome() {
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     getUserLocation();
@@ -297,6 +300,16 @@ export default function CustomerHome() {
               <Search size={18} color="#27ae60" />
             </TouchableOpacity>
             <TouchableOpacity
+              style={[styles.viewToggleButton, viewMode === 'map' && styles.viewToggleActive]}
+              onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+            >
+              {viewMode === 'list' ? (
+                <MapIcon size={18} color={"#27ae60"} />
+              ) : (
+                <List size={18} color={"#fff"} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.refreshLocationButton}
               onPress={getUserLocation}
             >
@@ -312,6 +325,66 @@ export default function CustomerHome() {
           <MapPin size={48} color="#bdc3c7" />
           <Text style={styles.emptyText}>Yakınınızda işletme bulunamadı</Text>
           <Text style={styles.emptySubtext}>Daha sonra tekrar deneyin</Text>
+        </View>
+      ) : viewMode === 'map' ? (
+        <View style={styles.mapContainer}>
+          {userLocation && (
+            <MapView
+              ref={mapRef}
+              provider={PROVIDER_DEFAULT}
+              style={styles.map}
+              initialRegion={{
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+                latitudeDelta: 0.1,
+                longitudeDelta: 0.1,
+              }}
+              showsUserLocation
+              showsMyLocationButton
+            >
+              <Circle
+                center={{
+                  latitude: userLocation.latitude,
+                  longitude: userLocation.longitude,
+                }}
+                radius={MAX_DISTANCE_KM * 1000}
+                fillColor="rgba(39, 174, 96, 0.1)"
+                strokeColor="rgba(39, 174, 96, 0.3)"
+                strokeWidth={2}
+              />
+
+              {businesses.map((business) => {
+                const isOpen = isBusinessOpen(business);
+                return (
+                  <Marker
+                    key={business.id}
+                    coordinate={{
+                      latitude: business.latitude,
+                      longitude: business.longitude,
+                    }}
+                    title={business.name}
+                    description={`${business.distance.toFixed(1)} km • ${isOpen ? 'Açık' : 'Kapalı'}`}
+                    pinColor={isOpen ? '#27ae60' : '#e74c3c'}
+                    onCalloutPress={() => {
+                      if (isOpen) {
+                        router.push(`/(customer)/business/${business.id}`);
+                      }
+                    }}
+                  />
+                );
+              })}
+            </MapView>
+          )}
+          <View style={styles.mapLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#27ae60' }]} />
+              <Text style={styles.legendText}>Açık İşletme</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#e74c3c' }]} />
+              <Text style={styles.legendText}>Kapalı İşletme</Text>
+            </View>
+          </View>
         </View>
       ) : (
         <FlatList
@@ -680,5 +753,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#856404',
+  },
+  viewToggleButton: {
+    backgroundColor: '#e8f8f5',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#27ae60',
+  },
+  viewToggleActive: {
+    backgroundColor: '#27ae60',
+  },
+  mapContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  map: {
+    flex: 1,
+  },
+  mapLegend: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2c3e50',
   },
 });
