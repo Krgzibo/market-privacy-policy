@@ -19,10 +19,10 @@ export default function BusinessLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="business"
         options={{
-          title: 'Siparişler',
-          tabBarIcon: ({ size, color }) => <ListOrdered size={size} color={color} />,
+          title: 'İşletme',
+          tabBarIcon: ({ size, color }) => <Store size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -33,10 +33,10 @@ export default function BusinessLayout() {
         }}
       />
       <Tabs.Screen
-        name="business"
+        name="index"
         options={{
-          title: 'İşletme',
-          tabBarIcon: ({ size, color }) => <Store size={size} color={color} />,
+          title: 'Siparişler',
+          tabBarIcon: ({ size, color }) => <ListOrdered size={size} color={color} />,
         }}
       />
       <Tabs.Screen
