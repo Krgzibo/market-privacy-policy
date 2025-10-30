@@ -37,17 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
         console.log('Auth State Changed:', event, 'Session:', session);
-        setSession(session);
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
+
+        if (event === 'SIGNED_OUT' || !session) {
+          setSession(null);
           setUser(null);
           setLoading(false);
-          if (event === 'SIGNED_OUT') {
-            console.log('SIGNED_OUT event detected, redirecting to /');
-            router.replace('/');
-            console.log('Router replace called');
-          }
+          await AsyncStorage.removeItem(USER_TYPE_KEY);
+          router.replace('/');
+        } else if (session?.user) {
+          setSession(session);
+          await loadUserProfile(session.user.id);
         }
       })();
     });
