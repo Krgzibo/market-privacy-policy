@@ -116,7 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      await AsyncStorage.removeItem(USER_TYPE_KEY);
       await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
     } catch (error) {
       console.error('Error signing out:', error);
     }
