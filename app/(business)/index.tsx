@@ -191,13 +191,7 @@ export default function BusinessOrders() {
         </div>
       ` : '';
 
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        Alert.alert('Hata', 'Pop-up engelleyici nedeniyle yazdırma penceresi açılamadı. Lütfen pop-up engelleyiciyi kapatın.');
-        return;
-      }
-
-      printWindow.document.write(`
+      const printContent = `
         <!DOCTYPE html>
         <html>
           <head>
@@ -332,17 +326,28 @@ export default function BusinessOrders() {
             </div>
           </body>
         </html>
-      `);
+      `;
 
-      printWindow.document.close();
+      const blob = new Blob([printContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
 
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
+      if (!printWindow) {
+        URL.revokeObjectURL(url);
+        Alert.alert('Hata', 'Pop-up engelleyici nedeniyle yazdırma penceresi açılamadı. Lütfen pop-up engelleyiciyi kapatın.');
+        return;
+      }
+
+      printWindow.onload = () => {
         setTimeout(() => {
-          printWindow.close();
-        }, 100);
-      }, 500);
+          printWindow.focus();
+          printWindow.print();
+          setTimeout(() => {
+            printWindow.close();
+            URL.revokeObjectURL(url);
+          }, 100);
+        }, 500);
+      };
 
     } catch (error) {
       console.error('Print error:', error);
