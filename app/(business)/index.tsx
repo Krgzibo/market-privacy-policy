@@ -156,7 +156,12 @@ export default function BusinessOrders() {
   };
 
   const printOrder = (order: OrderWithItems) => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Bilgi', 'Yazdırma özelliği sadece web sürümünde kullanılabilir');
+      return;
+    }
+
+    try {
       const orderDate = new Date(order.created_at).toLocaleDateString('tr-TR', {
         day: 'numeric',
         month: 'long',
@@ -172,68 +177,176 @@ export default function BusinessOrders() {
       const businessName = business?.name || 'İşletme';
       const statusLabel = statusConfig[order.status].label;
 
-      let printContent = `${businessName}\n`;
-      printContent += `${'='.repeat(40)}\n\n`;
-      printContent += `Sipariş No: ${order.order_code || order.id}\n`;
-      printContent += `Müşteri: ${order.customer_name}\n`;
-      printContent += `Tarih: ${orderDate}\n`;
-      printContent += `Teslim Saati: ${pickupTime}\n`;
-      printContent += `Durum: ${statusLabel}\n\n`;
-      printContent += `${'='.repeat(40)}\n`;
-      printContent += `SİPARİŞ DETAYLARI\n`;
-      printContent += `${'='.repeat(40)}\n\n`;
+      const itemsHtml = order.order_items.map(item => `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${item.quantity}x ${item.product_name}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right;">${(item.price * item.quantity).toFixed(2)} ₺</td>
+        </tr>
+      `).join('');
 
-      order.order_items.forEach(item => {
-        printContent += `${item.quantity}x ${item.product_name}\n`;
-        printContent += `   ${(item.price * item.quantity).toFixed(2)} ₺\n`;
-      });
+      const notesHtml = order.notes ? `
+        <div style="background: #fff9e6; padding: 12px; border-radius: 8px; margin: 16px 0;">
+          <strong style="color: #f39c12;">Müşteri Notu:</strong><br/>
+          ${order.notes}
+        </div>
+      ` : '';
 
-      if (order.notes) {
-        printContent += `\n${'='.repeat(40)}\n`;
-        printContent += `Müşteri Notu:\n${order.notes}\n`;
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        Alert.alert('Hata', 'Pop-up engelleyici nedeniyle yazdırma penceresi açılamadı. Lütfen pop-up engelleyiciyi kapatın.');
+        return;
       }
 
-      printContent += `\n${'='.repeat(40)}\n`;
-      printContent += `TOPLAM: ${order.total_amount.toFixed(2)} ₺\n`;
-      printContent += `${'='.repeat(40)}\n`;
-
-      const printFrame = document.createElement('iframe');
-      printFrame.style.display = 'none';
-      document.body.appendChild(printFrame);
-
-      const doc = printFrame.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(`
-          <html>
-            <head>
-              <meta charset="UTF-8">
-              <style>
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sipariş Fiş - ${order.order_code || order.id}</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                padding: 20px;
+                max-width: 80mm;
+                margin: 0 auto;
+              }
+              .header {
+                text-align: center;
+                margin-bottom: 20px;
+                padding-bottom: 16px;
+                border-bottom: 2px solid #333;
+              }
+              .business-name {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 8px;
+              }
+              .order-code {
+                font-size: 20px;
+                color: #3498db;
+                font-weight: bold;
+              }
+              .info-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #eee;
+              }
+              .label {
+                color: #666;
+              }
+              .value {
+                font-weight: 600;
+              }
+              .items-section {
+                margin: 20px 0;
+              }
+              .section-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin: 16px 0 12px 0;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #333;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              .total-section {
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 2px solid #333;
+              }
+              .total {
+                display: flex;
+                justify-content: space-between;
+                font-size: 22px;
+                font-weight: bold;
+              }
+              .status-badge {
+                display: inline-block;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                background: #e8f8f5;
+                color: #27ae60;
+              }
+              @media print {
                 body {
-                  font-family: 'Courier New', monospace;
-                  padding: 20px;
-                  white-space: pre-wrap;
-                  font-size: 14px;
+                  padding: 10px;
                 }
-                @media print {
-                  body { padding: 10px; }
+                @page {
+                  margin: 0;
+                  size: 80mm auto;
                 }
-              </style>
-            </head>
-            <body>${printContent}</body>
-          </html>
-        `);
-        doc.close();
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="business-name">${businessName}</div>
+              <div class="order-code">Sipariş: ${order.order_code || order.id.substring(0, 8)}</div>
+            </div>
 
+            <div class="info-row">
+              <span class="label">Müşteri:</span>
+              <span class="value">${order.customer_name}</span>
+            </div>
+
+            <div class="info-row">
+              <span class="label">Tarih:</span>
+              <span class="value">${orderDate}</span>
+            </div>
+
+            <div class="info-row">
+              <span class="label">Teslim Saati:</span>
+              <span class="value">${pickupTime}</span>
+            </div>
+
+            <div class="info-row">
+              <span class="label">Durum:</span>
+              <span class="status-badge">${statusLabel}</span>
+            </div>
+
+            <div class="items-section">
+              <div class="section-title">Sipariş Detayları</div>
+              <table>
+                ${itemsHtml}
+              </table>
+            </div>
+
+            ${notesHtml}
+
+            <div class="total-section">
+              <div class="total">
+                <span>TOPLAM:</span>
+                <span>${order.total_amount.toFixed(2)} ₺</span>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
         setTimeout(() => {
-          printFrame.contentWindow?.print();
-          setTimeout(() => {
-            document.body.removeChild(printFrame);
-          }, 100);
-        }, 250);
-      }
-    } else {
-      Alert.alert('Bilgi', 'Yazdırma özelliği sadece web sürümünde kullanılabilir');
+          printWindow.close();
+        }, 100);
+      }, 500);
+
+    } catch (error) {
+      console.error('Print error:', error);
+      Alert.alert('Hata', 'Fiş yazdırılırken bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
 
